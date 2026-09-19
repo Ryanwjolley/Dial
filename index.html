@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14110E">
+<title>Dial</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#14110E; --surface:#1E1A15; --surface2:#272119;
+  --line:#3A3128; --bone:#EDE3D2; --muted:#8E7E69;
+  --amber:#E8A33D; --rust:#C4552E; --moss:#7D8A5C;
+  --f-disp:"Barlow Condensed",-apple-system,"Helvetica Neue",sans-serif;
+  --f-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --f-mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--bone);font-family:var(--f-ui);
+  font-size:16px;-webkit-text-size-adjust:100%}
+body{padding:0 0 env(safe-area-inset-bottom)}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 96px}
+
+header{display:flex;align-items:baseline;gap:10px;padding:20px 0 14px;
+  border-bottom:1px solid var(--line);margin-bottom:18px}
+.mark{font-family:var(--f-disp);font-size:30px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;line-height:1}
+.mark em{font-style:normal;color:var(--amber)}
+.sub{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+.tabs{display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:3px;margin-bottom:18px}
+.tabs button{flex:1;background:none;border:0;color:var(--muted);font-family:var(--f-ui);
+  font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:9px 4px;
+  border-radius:7px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--surface2);color:var(--bone)}
+.tabs button:focus-visible{outline:2px solid var(--amber);outline-offset:1px}
+
+.panel[hidden]{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px;margin-bottom:14px}
+.lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);
+  display:block;margin-bottom:6px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+input,select{width:100%;background:var(--surface2);border:1px solid var(--line);
+  color:var(--bone);border-radius:8px;padding:11px 12px;font-family:var(--f-mono);
+  font-size:17px;-webkit-appearance:none}
+select{font-family:var(--f-ui);font-size:15px}
+input:focus,select:focus{outline:2px solid var(--amber);outline-offset:-1px;border-color:var(--amber)}
+.range-in input{font-family:var(--f-disp);font-size:40px;font-weight:600;text-align:center;
+  letter-spacing:.02em;padding:6px 12px}
+
+/* ── signature: the turret ── */
+.solution{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:18px 16px;margin-bottom:14px}
+.turret{position:relative;width:150px;height:150px}
+.turret svg{width:100%;height:100%;display:block}
+.turret .ctr{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;pointer-events:none}
+.moa{font-family:var(--f-disp);font-size:52px;font-weight:600;line-height:.9;
+  color:var(--amber);font-variant-numeric:tabular-nums}
+.moa small{font-size:15px;letter-spacing:.14em;color:var(--muted);display:block;
+  margin-top:4px;font-weight:400}
+.readout{display:grid;gap:10px}
+.ro{display:flex;justify-content:space-between;align-items:baseline;
+  border-bottom:1px dotted var(--line);padding-bottom:7px}
+.ro span:first-child{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.ro span:last-child{font-family:var(--f-mono);font-size:16px;font-variant-numeric:tabular-nums}
+.big{font-family:var(--f-disp)!important;font-size:24px!important;font-weight:600}
+
+.flags{display:grid;gap:8px;margin-bottom:14px}
+.flag{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:11px 13px;
+  font-size:13px;line-height:1.45;border:1px solid}
+.flag b{font-family:var(--f-disp);letter-spacing:.1em;text-transform:uppercase;
+  font-size:13px;flex:0 0 auto}
+.f-warn{background:rgba(196,85,46,.13);border-color:rgba(196,85,46,.5);color:#F0C4B0}
+.f-note{background:rgba(232,163,61,.10);border-color:rgba(232,163,61,.4);color:#F0D9B0}
+
+table{width:100%;border-collapse:collapse;font-family:var(--f-mono);font-size:13px;
+  font-variant-numeric:tabular-nums}
+th{font-family:var(--f-ui);font-size:9px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);text-align:right;padding:0 0 8px;font-weight:500;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+td{text-align:right;padding:7px 0;border-bottom:1px solid rgba(58,49,40,.5)}
+tr.trans td{color:var(--rust)}
+tr.over td{opacity:.45}
+tr.rev2 td:nth-child(3){color:var(--amber)}
+
+.btn{display:block;width:100%;background:var(--surface2);border:1px solid var(--line);
+  color:var(--bone);font-family:var(--f-ui);font-size:13px;letter-spacing:.1em;
+  text-transform:uppercase;padding:13px;border-radius:9px;cursor:pointer;margin-top:12px}
+.btn.pri{background:var(--amber);color:#14110E;border-color:var(--amber);font-weight:600}
+.btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.hint{font-size:12px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+.hint b{color:var(--bone);font-weight:600}
+h2{font-family:var(--f-disp);font-size:19px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.head{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+.head h3{font-family:var(--f-disp);font-size:22px;font-weight:600;letter-spacing:.06em;
+  margin:0 0 3px;line-height:1.1}
+.head .when{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.spec{display:grid;grid-template-columns:repeat(4,1fr);gap:11px 10px;margin-top:14px}
+.spec div{min-width:0}
+.spec dt{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:3px;white-space:nowrap}
+.spec dd{margin:0;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.spec dd em{font-style:normal;color:var(--amber);font-size:10px;letter-spacing:.08em}
+.sv{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
+  padding:11px 0;border-bottom:1px solid rgba(58,49,40,.5)}
+.sv:last-child{border:0}
+.sv .who{font-size:13px;line-height:1.35;min-width:0}
+.sv .who b{font-family:var(--f-disp);font-size:17px;font-weight:600;letter-spacing:.03em}
+.sv .who i{font-style:normal;display:block;font-size:10px;color:var(--muted);
+  letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.sv .acts{display:flex;gap:6px}
+.sv button{background:var(--surface2);border:1px solid var(--line);color:var(--bone);
+  font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:7px 9px;
+  border-radius:7px;cursor:pointer;font-family:var(--f-ui)}
+.sv button.del{color:var(--rust)}
+#paper{position:fixed;inset:0;z-index:60;background:#F4F1EA;overflow-y:auto;
+  -webkit-overflow-scrolling:touch}
+#paper[hidden]{display:none}
+.paperbar{position:sticky;top:0;display:flex;gap:8px;align-items:center;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px;
+  background:#1E1A15;border-bottom:1px solid #3A3128}
+.paperbar .pspace{flex:1}
+.paperbar button{background:#272119;border:1px solid #3A3128;color:#EDE3D2;
+  font-family:var(--f-ui);font-size:12px;letter-spacing:.09em;text-transform:uppercase;
+  padding:9px 14px;border-radius:8px;cursor:pointer}
+.paperbar button.pri{background:var(--amber);color:#14110E;border-color:var(--amber);font-weight:600}
+#sheet{background:#fff;color:#111;font-family:Georgia,"Times New Roman",serif;
+  max-width:760px;margin:14px auto calc(28px + env(safe-area-inset-bottom,0px));
+  padding:26px 22px;box-shadow:0 2px 14px rgba(0,0,0,.28);border-radius:2px}
+#sheet h1{font-size:19px;margin:0 0 3px;letter-spacing:.01em;line-height:1.2}
+#sheet .sub{font-size:11px;color:#666;margin:0 0 16px;font-style:italic}
+#sheet table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+#sheet th{text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:.1em;
+  border-bottom:1px solid #111;padding:0 4px 4px;font-weight:normal;color:#444}
+#sheet th:first-child,#sheet td:first-child{text-align:left}
+#sheet td{text-align:right;padding:4px;border-bottom:1px solid #ddd;
+  font-variant-numeric:tabular-nums}
+#sheet td.note,#sheet span.note{font-size:10px;color:#666}
+#sheet .tot td{border-bottom:none;padding-top:5px}
+#sheet .fin td{border-top:2px solid #111;border-bottom:2px solid #111;
+  font-weight:bold;font-size:17px;padding:8px 4px}
+#sheet .meta{font-size:12.5px;margin-bottom:16px;line-height:1.7;
+  background:#F7F5F0;border-left:3px solid #111;padding:10px 12px}
+#sheet .foot{font-size:10px;color:#555;border-top:1px solid #bbb;padding-top:9px;
+  line-height:1.6;margin-top:14px}
+@media print{
+  body{background:#fff!important}
+  body > .wrap{display:none!important}
+  #paper{position:static;background:#fff;overflow:visible}
+  #paper[hidden]{display:none}
+  .paperbar{display:none!important}
+  #sheet{box-shadow:none;margin:0;padding:0;max-width:none;font-size:10pt}
+  #sheet .fin td{font-size:13pt}
+}
+#sout{position:sticky;top:0;z-index:5;margin-bottom:12px}
+.score{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.score .big-n{font-family:var(--f-disp);font-size:46px;font-weight:600;line-height:1;
+  color:var(--amber);font-variant-numeric:tabular-nums}
+.score .big-n span{font-size:16px;color:var(--muted);letter-spacing:.14em;margin-left:8px}
+.score .sub{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.6}
+.score .sub b{color:var(--bone);font-weight:600}
+.tick{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+.t-yes{background:rgba(125,138,92,.25);color:#B9C78E;border:1px solid rgba(125,138,92,.55)}
+.t-no{background:rgba(58,49,40,.55);color:var(--muted);border:1px solid var(--line)}
+.mrow{display:grid;grid-template-columns:1fr 74px 74px 50px;gap:8px;align-items:center;
+  padding:6px 0;border-bottom:1px solid rgba(58,49,40,.45)}
+.mrow:last-child{border:0}
+.mrow label{font-size:12px;line-height:1.25;color:var(--bone)}
+.mrow label i{font-style:normal;display:block;font-size:10px;color:var(--muted);margin-top:1px}
+.mrow input{padding:7px 8px;font-size:15px;text-align:right}
+.mrow .df{font-family:var(--f-mono);font-size:12px;color:var(--muted);text-align:right;
+  font-variant-numeric:tabular-nums}
+.mhead{display:grid;grid-template-columns:1fr 74px 74px 50px;gap:8px;
+  font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  padding-bottom:7px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.mhead span:not(:first-child){text-align:right}
+@media (max-width:400px){.mrow,.mhead{grid-template-columns:1fr 62px 62px 42px;gap:6px}}
+.legend{font-size:11px;color:var(--muted);line-height:1.5;margin:12px 0 0;
+  padding-top:10px;border-top:1px dotted var(--line)}
+@media (max-width:430px){.spec{grid-template-columns:repeat(3,1fr)}}
+.strip{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.strip .lbl{margin-bottom:8px}
+@media (prefers-reduced-motion:no-preference){.needle{transition:transform .45s cubic-bezier(.3,1.2,.4,1)}}
+@media (max-width:400px){.solution{grid-template-columns:1fr;justify-items:center}
+  .readout{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="mark">DI<em>A</em>L</div>
+  <div class="sub">elevation solver</div>
+</header>
+
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-t="shot">Shot</button>
+  <button role="tab" aria-selected="false" data-t="card">Card</button>
+  <button role="tab" aria-selected="false" data-t="true">True</button>
+  <button role="tab" aria-selected="false" data-t="gear">Gear</button>
+  <button role="tab" aria-selected="false" data-t="score">Score</button>
+</div>
+
+<!-- ══ SHOT ══ -->
+<section class="panel" id="p-shot">
+  <div class="card">
+    <div class="grid g2">
+      <div><label class="lbl" for="gun">Rifle</label><select id="gun"></select></div>
+      <div><label class="lbl" for="load">Load</label><select id="load"></select></div>
+    </div>
+  </div>
+
+  <div class="card range-in">
+    <label class="lbl" for="range">Range — yards</label>
+    <input id="range" type="number" inputmode="numeric" value="500">
+  </div>
+
+  <div class="solution">
+    <div class="turret">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="#272119" stroke-width="9"/>
+        <circle id="arc" cx="50" cy="50" r="44" fill="none" stroke="#E8A33D" stroke-width="9"
+          stroke-linecap="round" stroke-dasharray="0 999" transform="rotate(-90 50 50)"/>
+        <g id="ticks" stroke="#3A3128" stroke-width="1"></g>
+        <g class="needle" id="ndl" transform="rotate(0 50 50)">
+          <line x1="50" y1="50" x2="50" y2="12" stroke="#EDE3D2" stroke-width="2.2" stroke-linecap="round"/>
+        </g>
+        <circle cx="50" cy="50" r="3" fill="#EDE3D2"/>
+      </svg>
+      <div class="ctr"><div class="moa" id="moa">—</div></div>
+    </div>
+    <div class="readout">
+      <div class="ro"><span>Clicks</span><span class="big" id="clicks">—</span></div>
+      <div class="ro"><span>Revolution</span><span id="rev">—</span></div>
+      <div class="ro"><span>Windage</span><span id="wind">—</span></div>
+      <div class="ro"><span>Velocity</span><span id="vel">—</span></div>
+      <div class="ro" style="border:0"><span>Energy</span><span id="nrg">—</span></div>
+    </div>
+  </div>
+
+  <div class="flags" id="flags"></div>
+
+  <div class="card">
+    <div class="grid g2">
+      <div><label class="lbl" for="wspd">Wind — mph</label>
+        <input id="wspd" type="number" inputmode="decimal" value="10"></div>
+      <div><label class="lbl" for="wdir">Direction</label>
+        <select id="wdir">
+          <option value="1|R">3 o'clock — full, from the right</option>
+          <option value="0.87|R">2 or 4 o'clock — from the right</option>
+          <option value="0.5|R">1 or 5 o'clock — from the right</option>
+          <option value="0|">12 or 6 — head or tail, no value</option>
+          <option value="0.5|L">7 or 11 o'clock — from the left</option>
+          <option value="0.87|L">8 or 10 o'clock — from the left</option>
+          <option value="1|L">9 o'clock — full, from the left</option>
+        </select></div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label class="lbl" for="angle">Incline — deg</label>
+        <input id="angle" type="number" inputmode="decimal" value="0"></div>
+      <div><label class="lbl">&nbsp;</label><div class="hint" id="nowsel" style="margin:0;padding-top:11px"></div></div>
+    </div>
+    <p class="hint">Windage is 1/4 MOA clicks, 15 MOA per rotation, 45 MOA total — dial it or hold it. <b>Dial the same side the wind comes from.</b> Default is 10 mph full value so you can scale it in your head: double for 20, halve for a quartering wind.</p>
+  </div>
+
+  <div class="card">
+    <h2>Conditions</h2>
+    <div class="grid g3">
+      <div><label class="lbl" for="temp">Temp °F</label>
+        <input id="temp" type="number" inputmode="decimal" value="45"></div>
+      <div><label class="lbl" for="press">Press inHg</label>
+        <input id="press" type="number" inputmode="decimal" step="0.01" value="24.90"></div>
+      <div><label class="lbl" for="hum">Hum %</label>
+        <input id="hum" type="number" inputmode="numeric" value="35"></div>
+    </div>
+    <div class="ro" style="margin-top:14px;border:0"><span>Density altitude</span><span id="da">—</span></div>
+    <p class="hint">Enter <b>station pressure</b> — the raw number, not the altimeter setting your weather app shows. That one is already sea-level corrected, and entering it here double-counts your altitude.</p>
+  </div>
+</section>
+
+<!-- ══ CARD ══ -->
+<section class="panel" id="p-card" hidden>
+  <div class="card">
+    <h2>Range card</h2>
+    <div class="grid g2">
+      <div><label class="lbl" for="step">Increment</label>
+        <select id="step"><option value="50">50 yards</option><option value="25">25 yards</option></select></div>
+      <div><label class="lbl" for="maxr">Max range</label>
+        <input id="maxr" type="number" inputmode="numeric" value="1000"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="head" id="stamp"></div>
+    <table><thead><tr><th>Yds</th><th>MOA</th><th>Clk</th><th>Rev</th><th>10mph</th><th>Spin</th><th>Vel</th></tr></thead>
+    <tbody id="cardbody"></tbody></table>
+    <p class="legend" id="legend"></p>
+    <div class="strip">
+      <span class="lbl">Density altitude correction — MOA to add</span>
+      <table><thead><tr><th>DA shift</th><th>500</th><th>700</th><th>900</th><th>1000</th></tr></thead>
+      <tbody id="dabody"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TRUE ══ -->
+<section class="panel" id="p-true" hidden>
+  <div class="card">
+    <h2>Truing</h2>
+    <p class="hint" style="margin:0 0 14px">Shoot at a known distance — 600 or beyond is where it actually bites. Enter the elevation that <b>put rounds on target</b>, and the solver back-solves muzzle velocity.</p>
+    <div class="grid g2">
+      <div><label class="lbl" for="tr">Distance — yds</label>
+        <input id="tr" type="number" inputmode="numeric" value="600"></div>
+      <div><label class="lbl" for="tm">Observed MOA</label>
+        <input id="tm" type="number" inputmode="decimal" step="0.25" value="12.5"></div>
+    </div>
+    <button class="btn pri" id="dotrue">Solve velocity</button>
+    <div id="trueout"></div>
+    <p class="hint">Range-day conditions are stored with the result. The solver fits whatever velocity makes the impact work — if the pressure you entered was wrong, that error rides along in the "trued" number forever unless you can see what it was fit against.</p>
+  </div>
+</section>
+
+<!-- ══ GEAR ══ -->
+<section class="panel" id="p-gear" hidden>
+  <div class="card">
+    <h2>Editing</h2>
+    <div class="grid g2">
+      <div><label class="lbl" for="ggun">Rifle</label><select id="ggun"></select></div>
+      <div><label class="lbl" for="gload">Load</label><select id="gload"></select></div>
+    </div>
+    <button class="btn" id="addload">Add a load to this rifle</button>
+  </div>
+
+  <div class="card">
+    <h2>Load</h2>
+    <label class="lbl" for="lname">Name</label>
+    <input id="lname" type="text" style="font-family:var(--f-ui);font-size:15px;margin-bottom:12px">
+    <div class="grid g2">
+      <div><label class="lbl" for="bc">BC</label><input id="bc" type="number" step="0.001" inputmode="decimal"></div>
+      <div><label class="lbl" for="drag">Model</label><select id="drag"><option>G7</option><option>G1</option></select></div>
+      <div><label class="lbl" for="mv">Muzzle vel — fps</label><input id="mv" type="number" inputmode="numeric"></div>
+      <div><label class="lbl" for="wt">Weight — gr</label><input id="wt" type="number" inputmode="numeric"></div>
+      <div><label class="lbl" for="mvT">MV measured at °F</label><input id="mvT" type="number" inputmode="numeric"></div>
+      <div><label class="lbl" for="sens">Powder — fps/°F</label><input id="sens" type="number" step="0.1" inputmode="decimal"></div>
+      <div><label class="lbl" for="twist">Twist — 1 in</label><input id="twist" type="number" step="0.5" inputmode="decimal"></div>
+      <div><label class="lbl" for="cal">Caliber — in</label><input id="cal" type="number" step="0.001" inputmode="decimal"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Rifle &amp; scope</h2>
+    <div class="grid g2">
+      <div><label class="lbl" for="zero">Zero — yards</label><input id="zero" type="number" inputmode="numeric"></div>
+      <div><label class="lbl" for="sh">Sight height — in</label><input id="sh" type="number" step="0.05" inputmode="decimal"></div>
+      <div><label class="lbl" for="zoff">Zero offset — MOA</label><input id="zoff" type="number" step="0.05" inputmode="decimal"></div>
+      <div><label class="lbl" for="click">Click — MOA</label><input id="click" type="number" step="0.05" inputmode="decimal"></div>
+      <div><label class="lbl" for="perrev">MOA per rev</label><input id="perrev" type="number" step="0.5" inputmode="decimal"></div>
+      <div><label class="lbl" for="travel">Elev travel — MOA</label><input id="travel" type="number" step="0.5" inputmode="decimal"></div>
+      <div><label class="lbl" for="wclick">Wind click — MOA</label><input id="wclick" type="number" step="0.05" inputmode="decimal"></div>
+      <div><label class="lbl" for="wmax">Wind travel — MOA</label><input id="wmax" type="number" step="1" inputmode="decimal"></div>
+    </div>
+    <p class="hint">These are <b>per rifle</b> — each gun carries its own scope. Razor HD LHT 4.5-22 defaults: 0.25 MOA clicks both turrets, 15 MOA/rev, 27 MOA elevation with the RevStop in, 45 MOA windage total. Change them on the kids' rifles if those wear different glass.</p>
+    <div class="ro" style="margin-top:14px"><span>Storage</span><span id="stomode">checking…</span></div>
+    <div class="ro" style="border:0"><span>Eviction protection</span><span id="stoperm">—</span></div>
+    <p class="hint" id="stonote"></p>
+    <button class="btn" id="exp">Export everything — JSON</button>
+    <button class="btn" id="imp">Import profiles</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+</section>
+
+<!-- ══ SCORE ══ -->
+<section class="panel" id="p-score" hidden>
+  <div class="card" style="margin-bottom:10px">
+    <label class="lbl" for="sp">Species / category</label>
+    <select id="sp"></select>
+  </div>
+  <div id="sout"></div>
+  <div class="card" id="sdata"></div>
+  <div class="card" id="srows"></div>
+  <div class="card">
+    <h2>Save &amp; export</h2>
+    <div class="grid g2">
+      <div><label class="lbl" for="tname">Animal / tag</label>
+        <input id="tname" type="text" style="font-family:var(--f-ui);font-size:15px"></div>
+      <div><label class="lbl" for="tdate">Date taken</label>
+        <input id="tdate" type="date" style="font-family:var(--f-ui);font-size:15px"></div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label class="lbl" for="tloc">Location / unit</label>
+        <input id="tloc" type="text" style="font-family:var(--f-ui);font-size:15px"></div>
+      <div><label class="lbl" for="thunter">Hunter</label>
+        <input id="thunter" type="text" style="font-family:var(--f-ui);font-size:15px"></div>
+    </div>
+    <button class="btn pri" id="ssave">Save this score</button>
+    <button class="btn" id="ssavenew" hidden>Save as a new entry</button>
+    <button class="btn" id="ssheet">Print worksheet</button>
+    <a class="btn" id="sofficial" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Official B&amp;C chart — PDF</a>
+    <button class="btn" id="sclear">Clear measurements</button>
+    <p class="hint">Green score only. B&amp;C requires a 60-day drying period and an Official Measurer before anything is official. Measure to the nearest 1/8 inch.</p>
+  </div>
+  <div class="card" id="svault"></div>
+</section>
+</div>
+<div id="paper" hidden>
+  <div class="paperbar">
+    <button id="pclose">Close</button>
+    <div class="pspace"></div>
+    <button id="pdl">Download</button>
+    <button id="pprint" class="pri">Print</button>
+  </div>
+  <div id="sheet"></div>
+</div>
+
+<script>
+"use strict";
+/* ─── standard drag tables ─── */
+const G7=[[0,.1198],[.5,.1194],[.6,.1194],[.7,.1202],[.75,.1215],[.8,.1242],[.825,.1266],
+[.85,.1306],[.875,.1368],[.9,.1464],[.925,.166],[.95,.2054],[.975,.2993],[1,.3803],
+[1.025,.4015],[1.05,.4043],[1.075,.4034],[1.1,.4014],[1.15,.3955],[1.2,.3884],[1.25,.381],
+[1.3,.3732],[1.35,.3657],[1.4,.358],[1.5,.344],[1.6,.3315],[1.7,.3209],[1.8,.3117],
+[1.9,.3042],[2,.298],[2.1,.2922],[2.2,.2864],[2.3,.2807],[2.4,.2752],[2.5,.2697],
+[2.6,.2643],[2.8,.2545],[3,.2463]];
+const G1=[[0,.2629],[.2,.2344],[.4,.2104],[.5,.2032],[.6,.2034],[.7,.2165],[.75,.2313],
+[.8,.2546],[.825,.2706],[.85,.2901],[.875,.3136],[.9,.3415],[.925,.3734],[.95,.4084],
+[.975,.4448],[1,.4805],[1.025,.5136],[1.05,.5427],[1.075,.5677],[1.1,.5883],[1.15,.6191],
+[1.2,.6393],[1.25,.6518],[1.3,.6589],[1.35,.6621],[1.4,.6625],[1.5,.6573],[1.6,.6474],
+[1.7,.6347],[1.8,.621],[1.9,.6072],[2,.5934],[2.1,.5804],[2.2,.5685],[2.3,.5577],
+[2.4,.5481],[2.5,.5397],[2.6,.5325],[2.8,.5211],[3,.5133]];
+const cd=(t,m)=>{if(m<=t[0][0])return t[0][1];const n=t.length;
+  if(m>=t[n-1][0])return t[n-1][1];
+  for(let i=1;i<n;i++)if(m<=t[i][0]){const[a,b]=t[i-1],[c,d]=t[i];return b+(d-b)*(m-a)/(c-a);}
+  return t[n-1][1];};
+
+/* ─── atmosphere ─── */
+const RHO0=0.0023769; // slug/ft3, ICAO sea level
+function air(tF,inHg,rh){
+  const tC=(tF-32)*5/9, tK=tC+273.15, P=inHg*3386.389;
+  const Psat=610.78*Math.exp(17.27*tC/(tC+237.3)), Pv=Math.max(0,Math.min(rh,100))/100*Psat;
+  const rho=((P-Pv)/(287.058*tK)+Pv/(461.495*tK))*0.00194032; // slug/ft3
+  const sos=49.0223*Math.sqrt((tF+459.67));                    // ft/s
+  return {rho,sos};
+}
+function densAlt(tF,inHg,rh){
+  const {rho}=air(tF,inHg,rh);
+  // invert standard atmosphere on density ratio
+  return (1-Math.pow(rho/RHO0,1/4.2559))/6.8756e-6;
+}
+
+/* ─── solver: point-mass, RK4 ─── */
+function fly(p,angle,maxYd){
+  const T=p.drag==="G7"?G7:G1, dt=0.0005, maxFt=maxYd*3+9;
+  const {rho,sos}=air(p.temp,p.press,p.hum);
+  const dr=rho/RHO0, G=32.174;
+  let x=0,y=-p.sh/12,vx=p.mv*Math.cos(angle),vy=p.mv*Math.sin(angle),t=0;
+  const out=[];let next=0;
+  const acc=(vx,vy)=>{const v=Math.hypot(vx,vy),M=v/sos;
+    const k=2.0855e-4*dr*cd(T,M)*v/p.bc;
+    return [-k*vx,-k*vy-G];};
+  while(x<maxFt&&t<12&&y>-400){
+    while(x>=next*3&&next<=maxYd+1){
+      out[next]={x,y,v:Math.hypot(vx,vy),t,mach:Math.hypot(vx,vy)/sos};next+=1;}
+    const[a1x,a1y]=acc(vx,vy);
+    const[a2x,a2y]=acc(vx+a1x*dt/2,vy+a1y*dt/2);
+    const[a3x,a3y]=acc(vx+a2x*dt/2,vy+a2y*dt/2);
+    const[a4x,a4y]=acc(vx+a3x*dt,vy+a3y*dt);
+    x+=vx*dt+(a1x+a2x+a3x)*dt*dt/6; y+=vy*dt+(a1y+a2y+a3y)*dt*dt/6;
+    vx+=(a1x+2*a2x+2*a3x+a4x)*dt/6; vy+=(a1y+2*a2y+2*a3y+a4y)*dt/6; t+=dt;
+  }
+  return out;
+}
+function zeroAngle(p,maxYd){ // secant solve for launch angle
+  let lo=0,hi=0.02;
+  for(let i=0;i<40;i++){
+    const mid=(lo+hi)/2, tr=fly(p,mid,Math.max(p.zero+5,maxYd));
+    const at=tr[p.zero];
+    if(!at){lo=mid;continue;}
+    (at.y<0)?lo=mid:hi=mid;
+  }
+  return (lo+hi)/2;
+}
+let _solveCache={key:null,val:null};
+function solve(p,maxYd){
+  const key=[p.bc,p.drag,p.mv,p.wt,p.twist,p.cal,p.zero,p.sh,p.temp,p.press,p.hum,maxYd].join("|");
+  if(_solveCache.key===key) return _solveCache.val;
+  const val=_solveRaw(p,maxYd);
+  _solveCache={key,val};
+  return val;
+}
+function _solveRaw(p,maxYd){
+  const ang=zeroAngle(p,maxYd);
+  const tr=fly(p,ang,maxYd);
+  const sg=stability(p);
+  return tr.map((pt,yd)=>{
+    if(!pt)return null;
+    const ft=yd*3||1e-9;
+    const moa=-(pt.y/ft)*3437.75;
+    // Litz spin drift — HORIZONTAL, right for right-hand twist. Never elevation.
+    const drift=1.25*(sg+1.2)*Math.pow(pt.t,1.83);
+    const sd=yd?(drift/(ft*12))*3437.75:0;
+    return {yd,moa,spin:sd,v:pt.v,t:pt.t,mach:pt.mach,
+      nrg:p.wt*pt.v*pt.v/450437};
+  });
+}
+function stability(p){
+  if(!p.twist||!p.cal)return 1.8;
+  const l=1.15/p.cal*3, tw=p.twist/p.cal; // rough length estimate in calibers
+  const sg=30*p.wt/(tw*tw*Math.pow(p.cal,3)*l*(1+l*l))*Math.pow(p.mv/2800,1/3);
+  return Math.max(1.1,Math.min(3,sg));
+}
+// wind only, unsigned magnitude
+function windMoa(p,row,mph,val){
+  if(!row||!row.yd)return 0;
+  const lag=row.t-(row.yd*3)/p.mv;
+  return ((mph*1.4667*val*lag*12)/(row.yd*36))*3437.75;
+}
+// total horizontal: spin drift (always right) + wind. Positive = bullet goes right = dial LEFT.
+function driftMoa(p,row,mph,val,side){
+  if(!row||!row.yd)return {moa:0,side:""};
+  const w=windMoa(p,row,mph,val);
+  const net=row.spin+(side==="L"?w:side==="R"?-w:0);
+  return {moa:Math.abs(net),side:net>=0?"L":"R"};
+}
+
+/* ─── state: rifles → loads ─── */
+const LHT={zero:200,sh:2.0,zoff:0,click:.25,perrev:15,travel:27,wclick:.25,wmax:45};
+// Starter profiles — generic and safe to ship to anyone who opens this app for
+// the first time. Real values (Ryan's rifles, Hayden's, Mason's) live only in
+// each person's own on-device database once they edit Gear; nothing personal
+// is baked into the source.
+let RIFLES={
+ "Rifle 1":{scope:{...LHT},trued:null,load:"Factory 168gr",
+   loads:{"Factory 168gr":{bc:.223,drag:"G7",mv:2650,mvT:70,sens:0,wt:168,twist:11,cal:.308}}},
+ "Rifle 2":{scope:{...LHT},trued:null,load:"Factory 143gr",
+   loads:{"Factory 143gr":{bc:.315,drag:"G7",mv:2960,mvT:70,sens:0,wt:143,twist:8,cal:.264}}},
+ "Rifle 3":{scope:{...LHT},trued:null,load:"Factory 180gr",
+   loads:{"Factory 180gr":{bc:.270,drag:"G7",mv:2950,mvT:70,sens:0,wt:180,twist:10,cal:.308}}}
+};
+let S={gun:"Rifle 1"};
+const $=id=>document.getElementById(id);
+const num=id=>parseFloat($(id).value)||0;
+const pressNum=()=>Math.max(num("press"),1);   // 1 inHg floor keeps the density math real
+const R =()=>RIFLES[S.gun];
+const sc=()=>R().scope;
+const L =()=>R().loads[R().load];
+
+function mvAt(l,base,tF){return base-(l.sens||0)*((l.mvT??70)-tF);}
+function params(){const l=L(),t=R().trued,tF=num("temp");
+  const base=(t&&t.load===R().load)?t.mv:l.mv;
+  return {...l, mv:mvAt(l,base,tF),
+    zero:sc().zero, sh:sc().sh,
+    temp:num("temp"), press:pressNum(), hum:num("hum")};}
+
+function fmtRev(moa){
+  const per=sc().perrev;
+  if(!(per>0)) return "—";
+  const r=Math.floor(moa/per)+1, into=moa-(r-1)*per;
+  return r<=1?"1st — on the first pass":`${r===2?"2nd":r+"th"} — ${into.toFixed(2)} past zero`;
+}
+
+/* ─── render ─── */
+function render(){
+  const yd=Math.max(1,Math.round(num("range")));
+  const cardMax=parseInt($("maxr").value)||1000;
+  const p=params(), sol=solve(p,Math.max(yd,cardMax,1000));
+  const row=sol[yd];
+  const ang=num("angle")*Math.PI/180;
+  let moa=row?row.moa:0;
+  if(ang) moa*=Math.cos(ang); // cosine on the drop, not the range
+  moa+=sc().zoff;               // sight-in offset: negative = zeroed high
+  const clicks=sc().click>0?Math.round(moa/sc().click):"—";
+  const [wv,wside]=$("wdir").value.split("|");
+  const d=driftMoa(p,row,num("wspd"),parseFloat(wv),wside);
+  const wind=d.moa;
+
+  $("moa").innerHTML=moa.toFixed(2)+"<small>MOA UP</small>";
+  $("clicks").textContent=clicks;
+  $("rev").textContent=fmtRev(moa);
+  $("wind").textContent=row?`${wind.toFixed(2)} ${d.side} · ${sc().wclick>0?Math.round(wind/sc().wclick):"—"} clk`:"—";
+  $("vel").textContent=row?Math.round(row.v)+" fps":"—";
+  $("nrg").textContent=row?Math.round(row.nrg)+" ft-lb":"—";
+  $("da").textContent=Math.round(densAlt(num("temp"),pressNum(),num("hum"))).toLocaleString()+" ft";
+
+  // turret
+  const frac=(moa%sc().perrev)/sc().perrev, deg=frac*360;
+  $("ndl").setAttribute("transform",`rotate(${deg} 50 50)`);
+  const C=2*Math.PI*44;
+  $("arc").setAttribute("stroke-dasharray",`${(frac*C).toFixed(1)} ${C}`);
+  $("arc").setAttribute("stroke",moa>sc().travel?"#C4552E":"#E8A33D");
+  if(!$("ticks").childElementCount){let s="";
+    for(let i=0;i<sc().perrev;i++){const a=i/sc().perrev*2*Math.PI-Math.PI/2;
+      s+=`<line x1="${50+Math.cos(a)*40}" y1="${50+Math.sin(a)*40}" x2="${50+Math.cos(a)*35}" y2="${50+Math.sin(a)*35}"/>`;}
+    $("ticks").innerHTML=s;}
+
+  // flags
+  const f=[];
+  if(moa>sc().travel)f.push(["f-warn","No dial",
+    `${moa.toFixed(1)} MOA exceeds your ${sc().travel} MOA usable travel. Pull the RevStop or hold on the reticle.`]);
+  else if(moa>sc().perrev)f.push(["f-note","2nd rev",
+    `Past ${sc().perrev} MOA with no revolution indicator on the turret. Count it deliberately.`]);
+  if(wind>sc().wmax/2)f.push(["f-warn","Windage",
+    `${wind.toFixed(1)} MOA exceeds the ${(sc().wmax/2)} MOA you have either side of center. Hold it on the reticle.`]);
+  if(row&&row.mach<1.2)f.push(["f-warn","Transonic",
+    "Bullet is below Mach 1.2 here. The solution gets unreliable and so does the group."]);
+  if(row&&row.nrg<1500&&row.nrg>0)f.push(["f-note","Energy",
+    `${Math.round(row.nrg)} ft-lb retained. Check that against what you're hunting.`]);
+  $("flags").innerHTML=f.map(([c,t,b])=>`<div class="flag ${c}"><b>${t}</b><div>${b}</div></div>`).join("");
+
+  if(!$("p-card").hidden) drawCard(p,sol);
+}
+
+function drawCard(p,sol){
+  const st=parseInt($("step").value),mx=parseInt($("maxr").value)||1000,c0=sc();
+  let h="";
+  for(let y=st;y<=mx;y+=st){
+    const r=sol[y];if(!r)continue;
+    const m=r.moa+c0.zoff, rev=Math.floor(m/sc().perrev)+1;
+    const cls=[r.mach<1.2?"trans":"",m>sc().travel?"over":"",rev>1?"rev2":""].join(" ");
+    h+=`<tr class="${cls}"><td>${y}</td><td>${m.toFixed(2)}</td>
+      <td>${sc().click>0?Math.round(m/sc().click):"—"}</td><td>${rev}</td>
+      <td>${windMoa(p,r,10,1).toFixed(1)}</td><td>${r.spin.toFixed(1)}</td><td>${Math.round(r.v)}</td></tr>`;
+  }
+  $("cardbody").innerHTML=h;
+  const da=Math.round(densAlt(p.temp,p.press,p.hum)),c=sc(),l=L(),t=R().trued;
+  const trued=t&&t.load===R().load;
+  const cell=(k,v,tag)=>`<div><dt>${k}</dt><dd>${v}${tag?` <em>${tag}</em>`:""}</dd></div>`;
+  $("stamp").innerHTML=
+    `<h3>${S.gun}</h3><div class="when">${R().load} · built ${new Date().toLocaleString([],
+      {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}</div>
+     <dl class="spec">
+      ${cell("Bullet",`${l.wt} gr`)}
+      ${cell("BC",`${l.bc.toFixed(3)} ${l.drag}`)}
+      ${cell("Muzzle vel",`${Math.round(p.mv)} fps`,trued?"TRUED":(l.sens?`${l.mv} @ ${l.mvT}°F`:""))}
+      ${cell("Twist",`1:${l.twist}`)}
+      ${cell("Zero",`${c.zero} yd`)}
+      ${cell("Sight ht",`${c.sh}"`)}
+      ${c.zoff?cell("Zero offset",`${c.zoff>0?"+":""}${c.zoff} MOA`,c.zoff<0?"HIGH":"LOW"):""}
+      ${cell("Elev click",`${c.click} MOA`)}
+      ${cell("Per rev",`${c.perrev} MOA`)}
+      ${cell("Elev travel",`${c.travel} MOA`)}
+      ${cell("Wind click",`${c.wclick} MOA`)}
+      ${cell("Temp",`${p.temp}°F`)}
+      ${cell("Pressure",`${p.press.toFixed(2)}"`)}
+      ${cell("Humidity",`${p.hum}%`)}
+      ${cell("Density alt",`${da.toLocaleString()} ft`)}
+     </dl>`;
+  $("legend").innerHTML=
+    `Rust rows are transonic. Faded rows exceed ${c.travel} MOA of elevation. `+
+    `Wind is 10 mph full value — dial the side it comes from; clicks are MOA ÷ ${c.wclick}. `+
+    `Spin is drift from bullet rotation, always right for a right-hand twist — dial left for it. `+
+    (trued?` Velocity trued at ${t.yd} yd against ${t.temp}°F · ${t.press.toFixed(2)}" · ${t.da.toLocaleString()} ft DA.`:
+            ` Velocity is as entered — not trued.`);
+
+  // DA correction strip
+  const shifts=[-4000,-2000,2000,4000],cols=[500,700,900,1000];
+  let d="";
+  for(const s of shifts){
+    // approximate: shift pressure to move DA by s ft, hold temp
+    const tgt=da+s, press=p.press*Math.pow(1-6.8756e-6*tgt,5.2559)/Math.pow(1-6.8756e-6*da,5.2559);
+    const alt=solve({...p,press},1000);
+    d+=`<tr><td>${s>0?"+":""}${(s/1000)}k</td>`+
+      cols.map(c=>{const a=alt[c],b=sol[c];
+        return `<td>${a&&b?((a.moa-b.moa)>=0?"+":"")+(a.moa-b.moa).toFixed(1):"—"}</td>`;}).join("")+"</tr>";
+  }
+  $("dabody").innerHTML=d;
+}
+
+/* ─── truing ─── */
+$("dotrue").onclick=()=>{
+  const yd=Math.round(num("tr")),obs=num("tm"),p=params(),base=L();
+  let lo=base.mv-400,hi=base.mv+400;
+  for(let i=0;i<28;i++){const mid=(lo+hi)/2;
+    const s=solve({...p,mv:mid},yd+5)[yd];
+    if(!s)break; ((s.moa+sc().zoff)>obs)?lo=mid:hi=mid;}
+  const mv=Math.round((lo+hi)/2),delta=mv-base.mv;
+  R().trued={load:R().load,mv,temp:p.temp,press:p.press,hum:p.hum,
+    da:Math.round(densAlt(p.temp,p.press,p.hum)),yd,obs};
+  const warn=Math.abs(delta)>75?
+    `<div class="flag f-warn" style="margin-top:12px"><b>Check</b><div>That's ${delta>0?"+":""}${delta} fps off your entered velocity. A swing that large usually means a bad range estimate, a scope tracking problem, or a mistyped BC — not a real velocity error. Verify before you trust it.</div></div>`:"";
+  $("trueout").innerHTML=`<div class="card" style="margin-top:14px">
+    <div class="ro"><span>Entered</span><span>${base.mv} fps</span></div>
+    <div class="ro"><span>Trued</span><span class="big">${mv} fps</span></div>
+    <div class="ro"><span>Rifle</span><span>${S.gun} · ${R().load}</span></div>
+    <div class="ro" style="border:0"><span>Fit against</span><span>${p.temp}°F · ${p.press.toFixed(2)} · ${R().trued.da.toLocaleString()} ft DA</span></div>
+    </div>${warn}`;
+  render();queueSave();
+};
+
+/* ─── B&C green scoring ─── */
+const SPECIES={
+ "Mule deer — typical":{k:"a",abn:-1,min:[180,190],rows:[
+  ["F","Length of main beam"],["G1","G-1 · first point"],["G2","G-2 · second point"],
+  ["G3","G-3 · third point"],["G4","G-4 · fourth point"],
+  ["H1","H-1 circumference","smallest between burr and G-1"],
+  ["H2","H-2 circumference","smallest between G-1 and G-2"],
+  ["H3","H-3 circumference","smallest between main beam and G-3"],
+  ["H4","H-4 circumference","smallest between G-2 and G-4"]]},
+ "Mule deer — non-typical":{k:"a",abn:1,min:[215,230],rows:"same:Mule deer — typical"},
+ "American elk — typical":{k:"a",abn:-1,min:[360,375],rows:[
+  ["F","Length of main beam"],["G1","G-1 · first point"],["G2","G-2 · second point"],
+  ["G3","G-3 · third point"],["G4","G-4 · fourth point"],["G5","G-5 · fifth point"],
+  ["G6","G-6 · sixth point","if present"],["G7","G-7 · seventh point","if present"],
+  ["H1","H-1 circumference","smallest between G-1 and G-2"],
+  ["H2","H-2 circumference","smallest between G-2 and G-3"],
+  ["H3","H-3 circumference","smallest between G-3 and G-4"],
+  ["H4","H-4 circumference","smallest between G-4 and G-5"]]},
+ "American elk — non-typical":{k:"a",abn:1,min:[385,385],rows:"same:American elk — typical"},
+ "Pronghorn":{k:"h",min:[80,82],data:["Tip to tip spread","Inside spread"],rows:[
+  ["C","Length of horn"],["D1","D-1 · circumference of base"],
+  ["D2","D-2 · first quarter"],["D3","D-3 · second quarter"],["D4","D-4 · third quarter"],
+  ["E","Length of prong"]]},
+ "Bighorn sheep — Rocky Mountain":{k:"h",min:[175,180],data:["Greatest spread","Tip to tip spread"],rows:[
+  ["C","Length of horn"],["D1","D-1 · circumference of base"],
+  ["D2","D-2 · first quarter"],["D3","D-3 · second quarter"],["D4","D-4 · third quarter"]]},
+ "Bighorn sheep — desert":{k:"h",min:[165,168],data:["Greatest spread","Tip to tip spread"],
+  rows:"same:Bighorn sheep — Rocky Mountain"},
+ "Bison":{k:"h",min:[115,115],data:["Greatest spread","Tip to tip spread"],
+  rows:"same:Bighorn sheep — Rocky Mountain"}
+};
+const CHART={
+ "Mule deer — typical":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/Typ%20Mule%20Deer.pdf",
+ "Mule deer — non-typical":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/NT%20Mule%20Deer.pdf",
+ "American elk — typical":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/Typ%20Am.%20Elk.pdf",
+ "American elk — non-typical":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/NT%20Am.%20Elk.pdf",
+ "Pronghorn":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/Pronghorn.pdf",
+ "Bighorn sheep — Rocky Mountain":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/Sheep.pdf",
+ "Bighorn sheep — desert":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/Sheep.pdf",
+ "Bison":"https://prod10-boone-crockett.s3.amazonaws.com/s3fs-public/2026-01/Bison.pdf"
+};
+const rowsOf=n=>{const r=SPECIES[n].rows;return typeof r==="string"?SPECIES[r.slice(5)].rows:r;};
+let SPN="Mule deer — typical", SV={};
+
+function e8(x){
+  if(!isFinite(x))return "0";
+  const neg=x<-1e-9; x=Math.abs(x);
+  let w=Math.floor(x+1e-9), f=Math.round((x-w)*8);
+  if(f===8){w++;f=0;}
+  return (neg?"−":"")+w+(f?` ${f}/8`:"");
+}
+const sv=k=>parseFloat(SV[k])||0;
+
+function scoreNow(){
+  const sp=SPECIES[SPN], rows=rowsOf(SPN);
+  let c1=0,c2=0,df=0;
+  for(const r0 of rows){const k=r0[0],r=sv(k+"R"),l=sv(k+"L");c1+=r;c2+=l;df+=Math.abs(r-l);}
+  let spread=0,capped=false;
+  if(sp.k==="a"){
+    const inside=sv("inside"), beam=Math.max(sv("FR"),sv("FL"));
+    spread=beam?Math.min(inside,beam):inside;
+    capped=beam>0&&inside>beam;
+  }
+  const abn=sp.k==="a"?sv("abnR")+sv("abnL"):0;
+  const sub=spread+c1+c2;
+  const net=sub-df+(sp.abn||0)*abn;
+  const gross=sub+(sp.abn===1?abn:0);
+  return {sp,rows,c1,c2,df,spread,abn,sub,net,gross,capped};
+}
+
+function drawScore(){
+  const s=scoreNow(), aw=s.sp.min[0], at=s.sp.min[1];
+  $("sout").innerHTML='<div class="score">'+
+    `<div class="big-n">${e8(s.net)}<span>NET</span></div>`+
+    `<div class="sub"><span class="tick ${s.net>=at?"t-yes":"t-no"}">All-time ${at}</span>`+
+    `<span class="tick ${s.net>=aw?"t-yes":"t-no"}">Awards ${aw}</span></div>`+
+    `<div class="sub">Gross <b>${e8(s.gross)}</b>`+
+    (s.sp.k==="a"?` · spread credit <b>${e8(s.spread)}</b>`:"")+
+    ` · right <b>${e8(s.c1)}</b> · left <b>${e8(s.c2)}</b> · symmetry deduction <b>−${e8(s.df)}</b>`+
+    (s.abn?` · abnormals <b>${s.sp.abn===1?"+":"−"}${e8(s.abn)}</b>`:"")+`</div>`+
+    (s.capped?'<div class="sub" style="color:var(--amber)">Inside spread exceeds the longer main beam — credit capped at the beam.</div>':"")+
+    '</div>';
+}
+
+function drawScoreForm(){
+  const sp=SPECIES[SPN], rows=rowsOf(SPN);
+  const fld=(k)=>`<input type="number" step="0.125" inputmode="decimal" data-sk="${k}" value="${SV[k]!==undefined?SV[k]:""}">`;
+  let d='<h2>Data — not scored</h2>';
+  if(sp.k==="a"){
+    d+='<div class="mhead"><span></span><span>Right</span><span>Left</span><span></span></div>'+
+      '<div class="mrow"><label>Points on antler</label>'+
+      `<input type="number" step="1" inputmode="numeric" data-sk="ptR" value="${SV.ptR!==undefined?SV.ptR:""}">`+
+      `<input type="number" step="1" inputmode="numeric" data-sk="ptL" value="${SV.ptL!==undefined?SV.ptL:""}"><span class="df"></span></div>`+
+      `<div class="grid g2" style="margin-top:12px">
+        <div><label class="lbl">Tip to tip</label>${fld("tip")}</div>
+        <div><label class="lbl">Greatest spread</label>${fld("great")}</div></div>
+      <div style="margin-top:12px"><label class="lbl">Inside spread of main beams — scored</label>${fld("inside")}</div>
+      <p class="hint">Inside spread is credited up to the length of the longer main beam. Anything wider than that is capped.</p>`;
+  }else{
+    d+=`<div class="grid g2">
+      <div><label class="lbl">${sp.data[0]}</label>${fld("d0")}</div>
+      <div><label class="lbl">${sp.data[1]}</label>${fld("d1")}</div></div>
+      <p class="hint">Quarter circumferences are marked using the <b>longer</b> horn's length divided by four, on both horns.</p>`;
+  }
+  $("sdata").innerHTML=d;
+
+  let h='<h2>Measurements — inches</h2>'+
+    '<div class="mhead"><span></span><span>Right</span><span>Left</span><span>Diff</span></div>';
+  for(const r0 of rows){
+    const k=r0[0],lab=r0[1],note=r0[2];
+    const show=SV[k+"R"]!==undefined||SV[k+"L"]!==undefined;
+    h+=`<div class="mrow"><label>${lab}${note?`<i>${note}</i>`:""}</label>`+
+      fld(k+"R")+fld(k+"L")+
+      `<span class="df" data-df="${k}">${show?e8(Math.abs(sv(k+"R")-sv(k+"L"))):""}</span></div>`;
+  }
+  if(sp.k==="a")
+    h+=`<div class="mrow" style="border-top:1px solid var(--line);margin-top:6px;padding-top:12px">
+      <label>Abnormal points — total<i>${sp.abn===1?"added to the score":"deducted from the score"}</i></label>
+      ${fld("abnR")}${fld("abnL")}<span class="df"></span></div>`;
+  $("srows").innerHTML=h;
+  const a=$("sofficial");if(a)a.href=CHART[SPN]||"https://www.boone-crockett.org/download-bc-score-charts";
+
+  document.querySelectorAll("[data-sk]").forEach(el=>{el.oninput=()=>{
+    const key=el.dataset.sk; SV[key]=el.value;
+    if(key.endsWith("R")||key.endsWith("L")){
+      const k=key.slice(0,-1), d=document.querySelector(`[data-df="${k}"]`);
+      if(d)d.textContent=e8(Math.abs(sv(k+"R")-sv(k+"L")));
+    }
+    drawScore();};});
+  drawScore();
+}
+
+/* ─── persistent store: IndexedDB → localStorage → memory ─── */
+const DB=(()=>{
+  let idb=null, mode="memory";
+  const MEM={};
+  function openIDB(){
+    return new Promise(res=>{
+      let done=false, fin=v=>{if(!done){done=true;res(v);}};
+      setTimeout(()=>fin(null),2500);
+      if(!("indexedDB" in window))return fin(null);
+      let rq;
+      try{rq=indexedDB.open("dial",1);}catch(e){return fin(null);}
+      rq.onupgradeneeded=()=>{const d=rq.result;
+        if(!d.objectStoreNames.contains("kv"))d.createObjectStore("kv",{keyPath:"k"});};
+      rq.onsuccess=()=>fin(rq.result);
+      rq.onerror=()=>fin(null);
+      rq.onblocked=()=>fin(null);
+    });
+  }
+  async function init(){
+    idb=await openIDB();
+    if(idb){mode="IndexedDB";return mode;}
+    try{localStorage.setItem("__dial","1");localStorage.removeItem("__dial");mode="localStorage";}
+    catch(e){mode="memory";}
+    return mode;
+  }
+  function get(k){
+    if(idb)return new Promise(res=>{
+      try{const t=idb.transaction("kv","readonly").objectStore("kv").get(k);
+        t.onsuccess=()=>res(t.result?t.result.v:null); t.onerror=()=>res(null);}
+      catch(e){res(null);}});
+    if(mode==="localStorage"){try{const v=localStorage.getItem("dial."+k);
+      return Promise.resolve(v?JSON.parse(v):null);}catch(e){}}
+    return Promise.resolve(MEM[k]!==undefined?MEM[k]:null);
+  }
+  function set(k,v){
+    MEM[k]=v;
+    if(idb)return new Promise(res=>{
+      try{const t=idb.transaction("kv","readwrite").objectStore("kv").put({k,v});
+        t.onsuccess=()=>res(true); t.onerror=()=>res(false);}
+      catch(e){res(false);}});
+    if(mode==="localStorage"){try{localStorage.setItem("dial."+k,JSON.stringify(v));
+      return Promise.resolve(true);}catch(e){}}
+    return Promise.resolve(false);
+  }
+  return {init,get,set,mode:()=>mode};
+})();
+
+let VAULT=[], CURID=null, PERSISTED=null;
+
+let _t=null;
+function queueSave(){clearTimeout(_t);_t=setTimeout(()=>{
+  DB.set("rifles",RIFLES);DB.set("sel",S);
+  DB.set("cond",{temp:num("temp"),press:pressNum(),hum:num("hum")});
+},400);}
+const saveScores=()=>DB.set("scores",VAULT);
+
+function meta(){return {name:$("tname").value.trim(),date:$("tdate").value,
+  loc:$("tloc").value.trim(),hunter:$("thunter").value.trim()};}
+
+function drawVault(){
+  if(!VAULT.length){$("svault").innerHTML=
+    '<h2>Saved scores</h2><p class="hint" style="margin:0">Nothing saved yet.</p>';return;}
+  $("svault").innerHTML='<h2>Saved scores</h2>'+VAULT.map(v=>
+    `<div class="sv"><div class="who"><b>${e8(v.net)}</b> &nbsp;${v.name||"Untitled"}
+      <i>${v.sp}${v.date?" · "+v.date:""}${v.loc?" · "+v.loc:""}</i></div>
+      <div class="acts">
+        <button data-ld="${v.id}">Open</button>
+        <button data-sh="${v.id}">Sheet</button>
+        <button class="del" data-rm="${v.id}">×</button>
+      </div></div>`).join("");
+  $("svault").querySelectorAll("[data-ld]").forEach(b=>b.onclick=()=>{
+    const v=VAULT.find(x=>x.id===b.dataset.ld);if(!v)return;
+    SPN=v.sp;SV={...v.vals};CURID=v.id;$("sp").value=SPN;
+    $("tname").value=v.name||"";$("tdate").value=v.date||"";
+    $("tloc").value=v.loc||"";$("thunter").value=v.hunter||"";
+    saveLabel();drawScoreForm();window.scrollTo({top:0,behavior:"smooth"});});
+  $("svault").querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{
+    const v=VAULT.find(x=>x.id===b.dataset.sh);if(v)printSheet(v);});
+  $("svault").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{
+    const v=VAULT.find(x=>x.id===b.dataset.rm);
+    if(v&&confirm(`Delete "${v.name||"Untitled"}" — ${e8(v.net)}?`)){
+      VAULT=VAULT.filter(x=>x.id!==b.dataset.rm);
+      if(CURID===b.dataset.rm){CURID=null;saveLabel();}
+      saveScores();drawVault();}});
+}
+
+function flash(id,msg,back){const b=$(id);b.textContent=msg;
+  setTimeout(()=>b.textContent=back,1400);}
+
+$("ssave").onclick=()=>{
+  const s=scoreNow(),m=meta();
+  const body={sp:SPN,vals:{...SV},net:s.net,gross:s.gross,saved:new Date().toISOString(),...m};
+  const i=CURID?VAULT.findIndex(x=>x.id===CURID):-1;
+  if(i>=0){VAULT[i]={...VAULT[i],...body};flash("ssave","Updated","Update saved score");}
+  else{CURID=String(Date.now());VAULT.unshift({id:CURID,...body});
+       flash("ssave","Saved","Update saved score");}
+  saveScores();drawVault();saveLabel();
+};
+$("ssavenew").onclick=()=>{
+  const s=scoreNow(),m=meta();
+  CURID=String(Date.now());
+  VAULT.unshift({id:CURID,sp:SPN,vals:{...SV},net:s.net,gross:s.gross,
+    saved:new Date().toISOString(),...m});
+  saveScores();drawVault();saveLabel();
+  flash("ssavenew","Copy saved","Save as a new entry");
+};
+function saveLabel(){
+  const open=CURID&&VAULT.some(x=>x.id===CURID);
+  $("ssave").textContent=open?"Update saved score":"Save this score";
+  $("ssavenew").hidden=!open;
+}
+
+/* ─── printable worksheet, in official chart field order ─── */
+function printSheet(rec){
+  const prevSPN=SPN,prevSV=SV,prevMeta=meta();
+  if(rec){SPN=rec.sp;SV=rec.vals;}
+  const s=scoreNow(),sp=s.sp,rows=s.rows;
+  const m=rec?{name:rec.name,date:rec.date,loc:rec.loc,hunter:rec.hunter}:prevMeta;
+  const cell=v=>v?e8(v):"";
+  let body="";
+  for(const r0 of rows){
+    const k=r0[0],lab=r0[1],note=r0[2],r=sv(k+"R"),l=sv(k+"L");
+    body+=`<tr><td>${lab.replace(/ · /," — ")}${note?`<span class="note"> (${note})</span>`:""}</td>
+      <td>${cell(r)}</td><td>${cell(l)}</td><td>${r||l?e8(Math.abs(r-l)):""}</td></tr>`;
+  }
+  let data="";
+  if(sp.k==="a"){
+    data=`A. Points — right ${sv("ptR")||"—"}, left ${sv("ptL")||"—"} &nbsp;·&nbsp;
+      B. Tip to tip ${cell(sv("tip"))||"—"} &nbsp;·&nbsp; C. Greatest spread ${cell(sv("great"))||"—"}
+      &nbsp;·&nbsp; D. Inside spread ${cell(sv("inside"))||"—"}`;
+  }else{
+    data=`A. ${sp.data[0]} ${cell(sv("d0"))||"—"} &nbsp;·&nbsp; B. ${sp.data[1]} ${cell(sv("d1"))||"—"}`;
+  }
+  const abnRow=sp.k==="a"?`<tr><td>E. Total of lengths of abnormal points</td>
+    <td>${cell(sv("abnR"))}</td><td>${cell(sv("abnL"))}</td><td></td></tr>`:"";
+  const spreadRow=sp.k==="a"?`<tr class="tot"><td>Spread credit</td><td colspan="3">${e8(s.spread)}</td></tr>`:"";
+  $("sheet").innerHTML=`
+    <h1>${SPN} — green score worksheet</h1>
+    <div class="sub">Unofficial. Transcribe to the official Boone and Crockett chart for entry.</div>
+    <div class="meta">
+      <b>${m.name||"—"}</b>${m.hunter?" · Hunter: "+m.hunter:""}${m.date?" · Taken: "+m.date:""}${m.loc?" · "+m.loc:""}<br>
+      ${data}
+    </div>
+    <table><thead><tr><th>Measurement</th><th>Right</th><th>Left</th><th>Diff</th></tr></thead>
+      <tbody>${abnRow}${body}
+        <tr class="tot"><td><b>Column totals</b></td><td><b>${e8(s.c1)}</b></td>
+          <td><b>${e8(s.c2)}</b></td><td><b>${e8(s.df)}</b></td></tr>
+      </tbody></table>
+    <table><tbody>
+      ${spreadRow}
+      <tr class="tot"><td>Column 1 — right</td><td>${e8(s.c1)}</td></tr>
+      <tr class="tot"><td>Column 2 — left</td><td>${e8(s.c2)}</td></tr>
+      <tr class="tot"><td>Subtotal</td><td>${e8(s.sub)}</td></tr>
+      <tr class="tot"><td>Subtract column 3 — differences</td><td>− ${e8(s.df)}</td></tr>
+      ${s.abn?`<tr class="tot"><td>${sp.abn===1?"Add":"Subtract"} abnormal points</td>
+        <td>${sp.abn===1?"+":"−"} ${e8(s.abn)}</td></tr>`:""}
+      <tr class="fin"><td>FINAL SCORE</td><td>${e8(s.net)}</td></tr>
+      <tr class="tot"><td class="note">Gross score</td><td class="note">${e8(s.gross)}</td></tr>
+    </tbody></table>
+    <div class="foot">
+      Minimums — Awards ${sp.min[0]}, All-time ${sp.min[1]}.
+      This worksheet is a personal green-score aid produced by Dial. It is not a Boone and Crockett
+      score chart and cannot be used for entry. Official scoring requires a 60-day drying period at
+      habitable room temperature and measurement by a B&amp;C Official Measurer on a current
+      official chart. Score charts are available from boone-crockett.org.
+    </div>`;
+  SPN=prevSPN;SV=prevSV;
+  $("paper").hidden=false;
+  $("paper").scrollTop=0;
+  document.body.style.overflow="hidden";
+}
+function closePaper(){$("paper").hidden=true;document.body.style.overflow="";}
+$("pclose").onclick=closePaper;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("paper").hidden)closePaper();});
+
+$("pprint").onclick=()=>{
+  try{window.print();}
+  catch(e){flash("pprint","Use Download","Print");}
+};
+
+// standalone HTML file — opens and prints anywhere, survives iOS
+const SHEET_CSS=`body{margin:0;background:#F4F1EA;padding:16px;
+  font-family:Georgia,"Times New Roman",serif}
+#sheet{background:#fff;color:#111;max-width:760px;margin:0 auto;padding:26px 22px;
+  box-shadow:0 2px 14px rgba(0,0,0,.2)}
+h1{font-size:19px;margin:0 0 3px;line-height:1.2}
+.sub{font-size:11px;color:#666;margin:0 0 16px;font-style:italic}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px}
+th{text-align:right;font-size:9px;text-transform:uppercase;letter-spacing:.1em;
+  border-bottom:1px solid #111;padding:0 4px 4px;font-weight:normal;color:#444}
+th:first-child,td:first-child{text-align:left}
+td{text-align:right;padding:4px;border-bottom:1px solid #ddd;font-variant-numeric:tabular-nums}
+td.note,span.note{font-size:10px;color:#666}
+.tot td{border-bottom:none;padding-top:5px}
+.fin td{border-top:2px solid #111;border-bottom:2px solid #111;font-weight:bold;
+  font-size:17px;padding:8px 4px}
+.meta{font-size:12.5px;margin-bottom:16px;line-height:1.7;background:#F7F5F0;
+  border-left:3px solid #111;padding:10px 12px}
+.foot{font-size:10px;color:#555;border-top:1px solid #bbb;padding-top:9px;
+  line-height:1.6;margin-top:14px}
+@media print{body{background:#fff;padding:0}#sheet{box-shadow:none;margin:0;max-width:none}}`;
+
+$("pdl").onclick=()=>{
+  const h1=$("sheet").querySelector("h1");
+  const title=h1?h1.textContent:"Score worksheet";
+  const who=$("sheet").querySelector(".meta b");
+  const doc="<!DOCTYPE html><html><head><meta charset=\"utf-8\">"+
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"+
+    "<title>"+title+"</title><style>"+SHEET_CSS+"</style></head>"+
+    "<body><div id=\"sheet\">"+$("sheet").innerHTML+"</div></body></html>";
+  const blob=new Blob([doc],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  const base=(who&&who.textContent||"score").replace(/[^\w -]/g,"").trim()||"score";
+  a.download=base+" worksheet.html";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  flash("pdl","Downloaded","Download");
+};
+$("ssheet").onclick=()=>printSheet(null);
+
+$("sp").innerHTML=Object.keys(SPECIES).map(k=>`<option>${k}</option>`).join("");
+$("sp").onchange=()=>{SPN=$("sp").value;SV={};CURID=null;saveLabel();drawScoreForm();};
+$("sclear").onclick=()=>{SV={};CURID=null;
+  ["tname","tdate","tloc","thunter"].forEach(k=>$(k).value="");
+  saveLabel();drawScoreForm();};
+
+/* ─── pickers, gear, wiring ─── */
+const opts=o=>Object.keys(o).map(k=>`<option>${k}</option>`).join("");
+
+function syncPickers(){
+  $("gun").innerHTML=$("ggun").innerHTML=opts(RIFLES);
+  $("gun").value=$("ggun").value=S.gun;
+  $("load").innerHTML=$("gload").innerHTML=opts(R().loads);
+  $("load").value=$("gload").value=R().load;
+  const only=Object.keys(R().loads).length===1;
+  $("nowsel").textContent=only?S.gun:`${S.gun} · ${R().load}`;
+}
+function fillGear(){
+  const l=L(),c=sc();
+  $("lname").value=R().load;
+  $("bc").value=l.bc;$("drag").value=l.drag;$("mv").value=l.mv;$("wt").value=l.wt;
+  $("twist").value=l.twist;$("cal").value=l.cal;
+  $("mvT").value=l.mvT??70;$("sens").value=l.sens||0;
+  $("zero").value=c.zero;$("sh").value=c.sh;$("zoff").value=c.zoff;$("click").value=c.click;
+  $("perrev").value=c.perrev;$("travel").value=c.travel;
+  $("wclick").value=c.wclick;$("wmax").value=c.wmax;
+}
+function refresh(){syncPickers();fillGear();$("ticks").innerHTML="";$("trueout").innerHTML="";render();}
+
+$("gun").onchange=$("ggun").onchange=e=>{S.gun=e.target.value;refresh();queueSave();};
+$("load").onchange=$("gload").onchange=e=>{R().load=e.target.value;R().trued=null;refresh();queueSave();};
+
+$("lname").onchange=()=>{
+  const old=R().load, nw=$("lname").value.trim();
+  if(!nw||nw===old){$("lname").value=old;return;}
+  if(R().loads[nw]){alert("This rifle already has a load by that name.");$("lname").value=old;return;}
+  R().loads[nw]=R().loads[old];delete R().loads[old];R().load=nw;
+  if(R().trued&&R().trued.load===old)R().trued.load=nw;
+  refresh();queueSave();
+};
+$("addload").onclick=()=>{
+  let n=1,name;do{name="New load "+n++;}while(R().loads[name]);
+  R().loads[name]={...L()};R().load=name;R().trued=null;refresh();queueSave();
+};
+
+["bc","mv","wt","twist","cal","mvT","sens"].forEach(k=>$(k).oninput=()=>{
+  L()[k]=parseFloat($(k).value)||0;R().trued=null;render();queueSave();});
+$("drag").onchange=()=>{L().drag=$("drag").value;render();queueSave();};
+["zero","sh","zoff","click","perrev","travel","wclick","wmax"].forEach(k=>$(k).oninput=()=>{
+  sc()[k]=parseFloat($(k).value)||0;$("ticks").innerHTML="";render();queueSave();});
+["range","wspd","angle"].forEach(k=>$(k).oninput=render);
+["temp","press","hum"].forEach(k=>$(k).oninput=()=>{render();queueSave();});
+["wdir","step","maxr"].forEach(k=>$(k).onchange=render);
+$("maxr").oninput=render;
+
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["shot","card","true","gear","score"].forEach(t=>$("p-"+t).hidden=(t!==b.dataset.t));
+  if(b.dataset.t==="card") render();});
+
+$("exp").onclick=()=>{
+  const blob=new Blob([JSON.stringify({v:1,rifles:RIFLES,sel:S,scores:VAULT},null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="dial-profiles.json";a.click();};
+$("imp").onclick=()=>$("file").click();
+$("file").onchange=e=>{const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);
+    if(!d.rifles)throw 0;
+    if(Array.isArray(d.scores)){VAULT=d.scores;saveScores();drawVault();}
+    RIFLES=d.rifles;
+    Object.values(RIFLES).forEach(r=>r.scope={...LHT,...r.scope});
+    queueSave(); S=d.sel&&RIFLES[d.sel.gun]?d.sel:{gun:Object.keys(RIFLES)[0]};
+    refresh();}catch(x){alert("That file didn't parse as a profile export.");}};
+  r.readAsText(f);};
+
+async function showStorage(){
+  const m=DB.mode();
+  $("stomode").textContent=m;
+  $("stoperm").textContent=PERSISTED===true?"granted":PERSISTED===false?"not granted":"unavailable";
+  $("stonote").innerHTML=
+    m==="IndexedDB"
+      ? (PERSISTED===true
+         ? "Your rifles and scores live in an on-device database the browser has agreed not to evict. Fully offline. Still export a JSON backup — this survives everything except deleting the app."
+         : "Your rifles and scores live in an on-device database. The browser has not granted eviction protection, so long gaps without opening the app could clear it. <b>Export a JSON backup.</b>")
+      : m==="localStorage"
+      ? "IndexedDB is unavailable here, so data is in localStorage — smaller and easier for the browser to clear. <b>Export a JSON backup.</b>"
+      : "<b>Nothing is being saved.</b> This environment blocks storage, so data lives only until you close this screen. Deploy to your own domain, or export a JSON backup before you leave.";
+}
+
+async function boot(){
+  await DB.init();
+  try{
+    if(navigator.storage&&navigator.storage.persisted){
+      PERSISTED=await navigator.storage.persisted();
+      if(!PERSISTED&&navigator.storage.persist)PERSISTED=await navigator.storage.persist();
+    }
+  }catch(e){PERSISTED=null;}
+
+  const r=await DB.get("rifles");
+  if(r&&Object.keys(r).length){
+    RIFLES=r;
+    Object.values(RIFLES).forEach(x=>x.scope={...LHT,...x.scope});
+  }
+  const sel=await DB.get("sel");
+  if(sel&&RIFLES[sel.gun])S=sel;
+  const sc=await DB.get("scores");
+  if(Array.isArray(sc))VAULT=sc;
+  const cond=await DB.get("cond");
+  if(cond){
+    if(cond.temp)$("temp").value=cond.temp;
+    if(cond.press)$("press").value=cond.press;
+    if(cond.hum!==undefined)$("hum").value=cond.hum;
+  }
+
+  refresh();
+  drawScoreForm();
+  drawVault();
+  saveLabel();
+  showStorage();
+  if(!r)queueSave();
+
+  if("serviceWorker" in navigator){
+    try{await navigator.serviceWorker.register("sw.js");}catch(e){}
+  }
+}
+boot();
+</script>
+</body>
+</html>
